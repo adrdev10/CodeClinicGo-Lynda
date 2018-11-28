@@ -19,7 +19,7 @@ type Pixel struct {
 //Both jpg, resoluion is the same and bit depth
 func main() {
 	img, f := openImage("img/trump.jpeg")
-	p := getImagePixels(img)
+	p := getOriginalImagePixel(img)
 	img2, f2 := openImage("img/trump2.jpeg")
 	p2 := getImagePixels(img2)
 
@@ -29,6 +29,7 @@ func main() {
 		os.Exit(0)
 	}
 
+	fmt.Println(result)
 }
 
 func openImage(filename string) (image.Image, *os.File) {
@@ -45,9 +46,9 @@ func openImage(filename string) (image.Image, *os.File) {
 }
 
 func (img Pixel) areImagesEqual(img2 Pixel, file1, file2 *os.File) bool {
+	fmt.Println(len(img.Edges))
+	fmt.Println(len(img2.Edges))
 	var equal = false
-	//Two images cannot have the same name. Refactor so that it check for similarities in names
-	//Create method that checks for this
 	fileInfo1, err := file1.Stat()
 	if err != nil {
 		panic(err)
@@ -61,13 +62,17 @@ func (img Pixel) areImagesEqual(img2 Pixel, file1, file2 *os.File) bool {
 	if os.SameFile(fileInfo1, fileInfo2) {
 		equal = true
 	}
-	count := 0
-	for {
-		if count > 9 {
-			break
+	encounters := 0
+	for i := range img.Edges {
+		for j := range img2.Edges {
+			if img2.Edges[j] == img.Edges[i] {
+				encounters++
+				if encounters > 5000 {
+					equal = true
+					break
+				}
+			}
 		}
-		fmt.Println(img2.getRGBA(count))
-		count++
 	}
 	return equal
 }
@@ -83,14 +88,27 @@ func getImagePixels(img1 image.Image) Pixel {
 			} else if i == rows-1 {
 				color := img1.At(i, j)
 				pixelArray.Edges = append(pixelArray.Edges, color)
-			} else if i > 0 {
-				if j > 1 && j < columns-1 {
+			} else if i > 0 && i < rows-1 {
+				if j == 0 || j == columns-1 {
 					color := img1.At(i, j)
 					pixelArray.Edges = append(pixelArray.Edges, color)
 				}
 			} else {
 				continue
 			}
+		}
+	}
+	return pixelArray
+}
+
+func getOriginalImagePixel(img1 image.Image) Pixel {
+	rows, columns := img1.Bounds().Dy(), img1.Bounds().Dx()
+	pixelArray := Pixel{}
+	for i := 0; i < rows; i++ {
+		for j := 0; j < columns; j++ {
+			color := img1.At(i, j)
+			pixelArray.Edges = append(pixelArray.Edges, color)
+
 		}
 	}
 	return pixelArray
